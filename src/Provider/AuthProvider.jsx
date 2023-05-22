@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { GoogleAuthProvider, createUserWithEmailAndPassword, getAuth, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 import { createContext, useEffect, useState } from "react";
 import app from "../firebase/Firebase.config";
 
@@ -9,6 +9,8 @@ const AuthProvider = ({children}) => {
 
     const [user,setUser] = useState(null)
     const [loading,setLoading] = useState(true)
+    const googleProvider = new GoogleAuthProvider()
+
 
     const createUser = (email,password)=>{
         setLoading(true)
@@ -19,6 +21,11 @@ const AuthProvider = ({children}) => {
     const signIn = (email,password)=> {
         setLoading(true)
         return signInWithEmailAndPassword(auth,email,password)
+    }
+
+    const googleSignIn = ()=> {
+        setLoading(true)
+        return signInWithPopup(auth,googleProvider)
     }
 
     const logOut = ()=> {
@@ -33,6 +40,32 @@ const AuthProvider = ({children}) => {
     setUser(currentUser)
     setLoading(false)
     console.log('current use', currentUser)
+        if(currentUser && currentUser.email){
+            const loggedUser = {
+                user : currentUser.email
+            }
+            fetch('https://car-doctor-server-nine-cyan.vercel.app/jwt',{
+                method : 'POST',
+                headers : {
+                    'content-type' : 'application/json'
+                },
+                body : JSON.stringify(loggedUser)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("jwt response",data)
+                // set local storage not best option
+
+                localStorage.setItem('car-access-token', data.token)
+                
+            })
+        }
+        else{
+            localStorage.removeItem('car-access-token')
+
+        }
+
+
    })
 
    return ()=> {
@@ -46,7 +79,8 @@ const AuthProvider = ({children}) => {
         loading,
         createUser,
         signIn,
-        logOut
+        logOut,
+        googleSignIn
     }
 
     return (
